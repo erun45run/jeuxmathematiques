@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carré Magique</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161d;
+    --surface2: #1e1e28;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0efe8;
+    --muted: #7a7a8c;
+    --accent: #c8f056;
+    --accent2: #5685f5;
+    --red: #f05670;
+    --green: #56f0a0;
+    --cell-size: 76px;
+    --gap: 6px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Background grid pattern */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,240,86,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,240,86,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 680px;
+    padding: 2rem 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    width: 100%;
+  }
+
+  .logo {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--text) 0%, var(--muted) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    margin-top: 0.5rem;
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  /* Controls bar */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .control-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  select {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    padding: 8px 14px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7a8c'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  select:focus { outline: none; border-color: var(--accent); }
+
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    align-self: flex-end;
+  }
+
+  .btn:hover { background: var(--surface2); border-color: rgba(255,255,255,0.25); }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #0e0e12;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .btn-accent:hover { background: #d8ff66; border-color: #d8ff66; }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .stat {
+    flex: 1;
+    background: var(--surface);
+    padding: 12px 16px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 2px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .stat-value.accent { color: var(--accent); }
+
+  /* Game area */
+  .game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap);
+    position: relative;
+  }
+
+  .grid-row {
+    display: flex;
+    gap: var(--gap);
+    align-items: center;
+  }
+
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    border-radius: 10px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .cell.fixed {
+    background: var(--surface2);
+    border-color: var(--border);
+    color: var(--accent);
+  }
+
+  .cell.correct {
+    border-color: var(--green);
+    background: rgba(86, 240, 160, 0.06);
+  }
+
+  .cell.wrong {
+    border-color: var(--red);
+    background: rgba(240, 86, 112, 0.06);
+  }
+
+  .cell input {
+    width: 100%; height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    -moz-appearance: textfield;
+  }
+
+  .cell input::-webkit-outer-spin-button,
+  .cell input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .cell input::placeholder { color: rgba(255,255,255,0.12); font-size: 18px; }
+
+  /* Sum indicators */
+  .sum-indicator {
+    width: 38px;
+    height: var(--cell-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+
+  .sum-indicator.ok { color: var(--green); }
+  .sum-indicator.bad { color: var(--red); }
+
+  .col-sums {
+    display: flex;
+    gap: var(--gap);
+    margin-top: 2px;
+  }
+
+  .col-sum {
+    width: var(--cell-size);
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+
+  .col-sum.ok { color: var(--green); }
+  .col-sum.bad { color: var(--red); }
+
+  /* Diagonal indicators */
+  .diag-info {
+    display: flex;
+    gap: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  .diag-info span { transition: color 0.2s; }
+  .diag-info span.ok { color: var(--green); }
+  .diag-info span.bad { color: var(--red); }
+
+  /* Message */
+  .message {
+    min-height: 40px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+
+  .message.success {
+    background: rgba(86, 240, 160, 0.1);
+    border: 1px solid rgba(86, 240, 160, 0.3);
+    color: var(--green);
+  }
+
+  .message.error {
+    background: rgba(240, 86, 112, 0.08);
+    border: 1px solid rgba(240, 86, 112, 0.25);
+    color: var(--red);
+  }
+
+  /* Timer */
+  #timer-display {
+    font-family: 'Space Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hint button */
+  .btn-hint {
+    background: rgba(86, 133, 245, 0.12);
+    border-color: rgba(86, 133, 245, 0.4);
+    color: var(--accent2);
+  }
+
+  .btn-hint:hover { background: rgba(86, 133, 245, 0.2); }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    :root { --cell-size: 58px; --gap: 4px; }
+    .cell { font-size: 18px; }
+    .cell input { font-size: 18px; }
+    h1 { font-size: 2rem; }
+  }
+
+  @media (max-width: 380px) {
+    :root { --cell-size: 48px; --gap: 3px; }
+    .cell { font-size: 16px; }
+    .cell input { font-size: 16px; }
+  }
+
+  /* Win animation */
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  .cell.win-anim { animation: pop 0.4s ease; }
+
+  /* Rule info panel */
+  .info-panel {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .info-panel strong { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">Jeu de logique</div>
+    <h1>Carré Magique</h1>
+    <p class="subtitle">Chaque ligne, colonne et diagonale doit atteindre la même somme.</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group">
+      <div class="control-label">Taille</div>
+      <select id="size-select">
+        <option value="3">3 × 3</option>
+        <option value="4">4 × 4</option>
+        <option value="5">5 × 5</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <div class="control-label">Difficulté</div>
+      <select id="diff-select">
+        <option value="easy">Facile</option>
+        <option value="medium">Moyen</option>
+        <option value="hard">Difficile</option>
+      </select>
+    </div>
+    <button class="btn" onclick="newGame()" style="align-self:flex-end">↺ Nouvelle</button>
+    <button class="btn btn-hint" onclick="giveHint()" style="align-self:flex-end">💡 Indice</button>
+    <button class="btn btn-accent" onclick="checkAll()" style="align-self:flex-end">Vérifier →</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Somme cible</div>
+      <div class="stat-value accent" id="target-display">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Chrono</div>
+      <div class="stat-value" id="timer-display">00:00</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Score</div>
+      <div class="stat-value" id="score-display">0</div>
+    </div>
+  </div>
+
+  <div class="game-area" id="game-area"></div>
+
+  <div class="message" id="message"></div>
+
+  <div class="info-panel">
+    <strong>Comment jouer :</strong> Remplissez les cases vides avec des chiffres de <strong id="range-display">1 à 9</strong>, 
+    chaque chiffre étant utilisé <strong>une seule fois</strong>. 
+    Toutes les lignes, colonnes et les deux diagonales doivent totaliser la même somme : <strong id="target-info">15</strong>.
+  </div>
+
+</div>
+
+<script>
+let N = 3, solution = [], fixed = [], userGrid = [];
+let timerInterval = null, seconds = 0, score = 0;
+let gameWon = false;
+
+function magicConstant(n) { return n * (n * n + 1) / 2; }
+
+function rotate90(m, n) {
+  let r = Array.from({length: n}, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++)
+      r[j][n - 1 - i] = m[i][j];
+  return r;
+}
+
+function generateMagicSquare(n) {
+  let s;
+  if (n === 3) s = [[2,7,6],[9,5,1],[4,3,8]];
+  else if (n === 4) s = [[16,2,3,13],[5,11,10,8],[9,7,6,12],[4,14,15,1]];
+  else s = [[17,24,1,8,15],[23,5,7,14,16],[4,6,13,20,22],[10,12,19,21,3],[11,18,25,2,9]];
+  let rots = Math.floor(Math.random() * 4);
+  for (let r = 0; r < rots; r++) s = rotate90(s, n);
+  if (Math.random() > 0.5) s = s.map(row => [...row].reverse());
+  if (Math.random() > 0.5) s = [...s].reverse();
+  return s;
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  seconds = 0;
+  timerInterval = setInterval(() => {
+    seconds++;
+    let m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    let s = String(seconds % 60).padStart(2, '0');
+    document.getElementById('timer-display').textContent = m + ':' + s;
+  }, 1000);
+}
+
+function stopTimer() { clearInterval(timerInterval); }
+
+function newGame() {
+  gameWon = false;
+  N = parseInt(document.getElementById('size-select').value);
+  let diff = document.getElementById('diff-select').value;
+  solution = generateMagicSquare(N);
+  userGrid = solution.map(row => [...row]);
+
+  let total = N * N;
+  let reveal = diff === 'easy' ? Math.ceil(total * 0.6) : diff === 'medium' ? Math.ceil(total * 0.35) : Math.ceil(total * 0.15);
+  let positions = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) positions.push([i, j]);
+  positions.sort(() => Math.random() - 0.5);
+
+  fixed = Array.from({length: N}, () => Array(N).fill(false));
+  for (let k = 0; k < reveal; k++) fixed[positions[k][0]][positions[k][1]] = true;
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++)
+    if (!fixed[i][j]) userGrid[i][j] = '';
+
+  let mc = magicConstant(N);
+  document.getElementById('target-display').textContent = mc;
+  document.getElementById('target-info').textContent = mc;
+  document.getElementById('range-display').textContent = '1 à ' + (N * N);
+  document.getElementById('message').textContent = '';
+  document.getElementById('message').className = 'message';
+
+  startTimer();
+  renderGrid();
+}
+
+function renderGrid() {
+  let area = document.getElementById('game-area');
+  area.innerHTML = '';
+
+  for (let i = 0; i < N; i++) {
+    let row = document.createElement('div');
+    row.className = 'grid-row';
+
+    for (let j = 0; j < N; j++) {
+      let cell = document.createElement('div');
+      cell.className = 'cell' + (fixed[i][j] ? ' fixed' : '');
+      cell.id = `cell-${i}-${j}`;
+
+      if (fixed[i][j]) {
+        cell.textContent = solution[i][j];
+      } else {
+        let inp = document.createElement('input');
+        inp.type = 'number'; inp.min = 1; inp.max = N * N;
+        inp.placeholder = '?';
+        if (userGrid[i][j] !== '') inp.value = userGrid[i][j];
+        inp.dataset.row = i; inp.dataset.col = j;
+        inp.addEventListener('input', function() {
+          let v = parseInt(this.value);
+          if (isNaN(v) || v < 1 || v > N * N) { userGrid[i][j] = ''; this.value = ''; }
+          else { userGrid[i][j] = v; }
+          cell.classList.remove('correct', 'wrong');
+          document.getElementById('message').textContent = '';
+          document.getElementById('message').className = 'message';
+        });
+        inp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') checkAll();
+        });
+        cell.appendChild(inp);
+      }
+      row.appendChild(cell);
+    }
+
+    let si = document.createElement('div');
+    si.className = 'sum-indicator'; si.id = `row-sum-${i}`;
+    row.appendChild(si);
+    area.appendChild(row);
+  }
+
+  let colSumsRow = document.createElement('div');
+  colSumsRow.className = 'col-sums';
+  colSumsRow.style.marginLeft = '0';
+  for (let j = 0; j < N; j++) {
+    let cs = document.createElement('div');
+    cs.className = 'col-sum'; cs.id = `col-sum-${j}`;
+    colSumsRow.appendChild(cs);
+  }
+  area.appendChild(colSumsRow);
+
+  let diagRow = document.createElement('div');
+  diagRow.className = 'diag-info';
+  diagRow.innerHTML = '<span id="diag1">↘ —</span><span id="diag2">↗ —</span>';
+  area.appendChild(diagRow);
+}
+
+function checkAll() {
+  if (gameWon) return;
+  let magic = magicConstant(N);
+  let allFilled = true;
+  let allCorrect = true;
+
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    if (!fixed[i][j]) {
+      let cell = document.getElementById(`cell-${i}-${j}`);
+      cell.classList.remove('correct', 'wrong');
+      if (userGrid[i][j] === '' || userGrid[i][j] === undefined) {
+        allFilled = false;
+      } else {
+        let isRight = parseInt(userGrid[i][j]) === solution[i][j];
+        cell.classList.add(isRight ? 'correct' : 'wrong');
+        if (!isRight) allCorrect = false;
+      }
+    }
+  }
+
+  for (let i = 0; i < N; i++) {
+    let rs = 0;
+    for (let j = 0; j < N; j++) rs += (userGrid[i][j] !== '' ? parseInt(userGrid[i][j]) : 0);
+    let rb = document.getElementById(`row-sum-${i}`);
+    if (rb) { rb.textContent = rs || ''; rb.className = 'sum-indicator ' + (rs === magic ? 'ok' : (rs > 0 ? 'bad' : '')); }
+
+    let cs = 0;
+    for (let ii = 0; ii < N; ii++) cs += (userGrid[ii][i] !== '' ? parseInt(userGrid[ii][i]) : 0);
+    let cb = document.getElementById(`col-sum-${i}`);
+    if (cb) { cb.textContent = cs || ''; cb.className = 'col-sum ' + (cs === magic ? 'ok' : (cs > 0 ? 'bad' : '')); }
+  }
+
+  let d1 = 0, d2 = 0;
+  for (let i = 0; i < N; i++) {
+    d1 += (userGrid[i][i] !== '' ? parseInt(userGrid[i][i]) : 0);
+    d2 += (userGrid[i][N - 1 - i] !== '' ? parseInt(userGrid[i][N - 1 - i]) : 0);
+  }
+  let db1 = document.getElementById('diag1');
+  let db2 = document.getElementById('diag2');
+  if (db1) { db1.textContent = '↘ ' + (d1 || '—'); db1.className = d1 === magic ? 'ok' : (d1 > 0 ? 'bad' : ''); }
+  if (db2) { db2.textContent = '↗ ' + (d2 || '—'); db2.className = d2 === magic ? 'ok' : (d2 > 0 ? 'bad' : ''); }
+
+  let msgEl = document.getElementById('message');
+  if (!allFilled) {
+    msgEl.textContent = 'Complétez toutes les cases pour vérifier.';
+    msgEl.className = 'message';
+  } else if (allCorrect) {
+    stopTimer();
+    gameWon = true;
+    score += Math.max(10, Math.floor(1000 / seconds) * N);
+    document.getElementById('score-display').textContent = score;
+    msgEl.textContent = '🎉 Bravo ! Carré magique résolu en ' + document.getElementById('timer-display').textContent + ' !';
+    msgEl.className = 'message success';
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      let c = document.getElementById(`cell-${i}-${j}`);
+      if (c) { c.classList.add('win-anim'); setTimeout(() => c.classList.remove('win-anim'), 500); }
+    }
+  } else {
+    msgEl.textContent = 'Pas encore… Vérifiez les cases en rouge.';
+    msgEl.className = 'message error';
+  }
+}
+
+function giveHint() {
+  if (gameWon) return;
+  let empties = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++)
+    if (!fixed[i][j] && (userGrid[i][j] === '' || userGrid[i][j] === undefined)) empties.push([i, j]);
+  if (empties.length === 0) return;
+  let [ri, rj] = empties[Math.floor(Math.random() * empties.length)];
+  userGrid[ri][rj] = solution[ri][rj];
+  let cell = document.getElementById(`cell-${ri}-${rj}`);
+  let inp = cell ? cell.querySelector('input') : null;
+  if (inp) { inp.value = solution[ri][rj]; inp.style.color = 'var(--accent2)'; }
+  cell && cell.classList.add('correct');
+  score = Math.max(0, score - 5);
+  document.getElementById('score-display').textContent = score;
+}
+
+document.getElementById('size-select').addEventListener('change', newGame);
+document.getElementById('diff-select').addEventListener('change', newGame);
+newGame();
+</script>
+</body>
+</html>
