@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carré Magique ✨</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fff8f0;
+    --surface: #ffffff;
+    --border: #e8ddd4;
+    --text: #3a2d25;
+    --muted: #9e8a80;
+    --yellow: #ffd93d;
+    --orange: #ff9a3c;
+    --pink: #ff6b9d;
+    --green: #06d6a0;
+    --blue: #4cc9f0;
+    --purple: #9b5de5;
+    --red: #ef233c;
+    --cell-size: 78px;
+    --gap: 8px;
+    --radius: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    background-image: radial-gradient(circle at 15% 20%, rgba(255,217,61,0.18) 0%, transparent 40%),
+                      radial-gradient(circle at 85% 80%, rgba(76,201,240,0.15) 0%, transparent 40%),
+                      radial-gradient(circle at 50% 50%, rgba(155,93,229,0.08) 0%, transparent 60%);
+  }
+
+  /* Floating stars background */
+  .stars-bg {
+    position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+  }
+  .star {
+    position: absolute;
+    font-size: 20px;
+    opacity: 0.12;
+    animation: float-star linear infinite;
+  }
+  @keyframes float-star {
+    0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.12; }
+    90% { opacity: 0.12; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 700px;
+    padding: 1.5rem 1.5rem 4rem;
+    display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+  }
+
+  /* Header */
+  header { text-align: center; width: 100%; }
+
+  .emoji-row { font-size: 2.2rem; margin-bottom: 0.2rem; letter-spacing: 0.15em; }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.8rem, 8vw, 4.2rem);
+    line-height: 1;
+    background: linear-gradient(135deg, var(--orange) 0%, var(--pink) 50%, var(--purple) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    filter: drop-shadow(2px 3px 0px rgba(255,107,157,0.25));
+  }
+
+  .subtitle {
+    margin-top: 0.4rem;
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%;
+  }
+
+  .control-group { display: flex; flex-direction: column; gap: 5px; }
+
+  .control-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  select {
+    background: var(--surface);
+    border: 2.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px; font-weight: 700;
+    padding: 9px 32px 9px 14px;
+    cursor: pointer; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M0 0l6 7 6-7z' fill='%239e8a80'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+    transition: border-color 0.15s;
+  }
+  select:focus { outline: none; border-color: var(--orange); }
+
+  .btn {
+    font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 800;
+    padding: 10px 20px; border-radius: 12px;
+    border: 2.5px solid transparent;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; align-self: flex-end;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.12);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
+
+  .btn-new {
+    background: var(--yellow); color: #3a2d25; border-color: #e8c200;
+    box-shadow: 0 3px 0 #c9a800;
+  }
+  .btn-new:active { box-shadow: 0 1px 0 #c9a800; }
+
+  .btn-hint {
+    background: var(--blue); color: white; border-color: #2fa8d0;
+    box-shadow: 0 3px 0 #1a7fa0;
+  }
+  .btn-hint:active { box-shadow: 0 1px 0 #1a7fa0; }
+
+  .btn-check {
+    background: var(--green); color: white; border-color: #04ad82;
+    box-shadow: 0 3px 0 #038060;
+    font-size: 15px;
+  }
+  .btn-check:active { box-shadow: 0 1px 0 #038060; }
+
+  /* Stats bar */
+  .stats {
+    display: flex; gap: 12px; width: 100%; flex-wrap: wrap; justify-content: center;
+  }
+
+  .stat {
+    flex: 1; min-width: 110px;
+    background: var(--surface);
+    border: 2.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px; text-align: center;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.07);
+  }
+
+  .stat-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  .stat-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem; color: var(--text); margin-top: 2px;
+  }
+
+  .stat-target .stat-value { color: var(--purple); }
+  .stat-score .stat-value { color: var(--orange); }
+  .stat-timer .stat-value { color: var(--blue); font-size: 1.6rem; }
+
+  /* Score progress bar */
+  .score-bar-wrap {
+    width: 100%; height: 10px; background: #ede0d4; border-radius: 10px;
+    margin-top: 4px; overflow: hidden;
+  }
+  .score-bar {
+    height: 100%; background: linear-gradient(90deg, var(--yellow), var(--orange));
+    border-radius: 10px; transition: width 0.4s cubic-bezier(.34,1.56,.64,1);
+    width: 0%;
+  }
+
+  /* Game area */
+  .game-wrapper {
+    background: var(--surface);
+    border: 2.5px solid var(--border);
+    border-radius: 20px;
+    padding: 20px 24px 16px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.08);
+    display: flex; flex-direction: column; align-items: center; gap: var(--gap);
+  }
+
+  .magic-sum-hint {
+    font-size: 13px; font-weight: 700; color: var(--purple);
+    background: rgba(155,93,229,0.1); border-radius: 8px; padding: 4px 12px;
+    margin-bottom: 4px;
+  }
+
+  .game-area { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
+
+  .grid-row { display: flex; gap: var(--gap); align-items: center; }
+
+  .cell {
+    width: var(--cell-size); height: var(--cell-size);
+    border-radius: var(--radius);
+    border: 2.5px solid var(--border);
+    background: #fdf7f3;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 26px; color: var(--text);
+    position: relative; transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.07);
+  }
+
+  .cell.fixed {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border-color: #ffb74d;
+    color: var(--orange);
+    box-shadow: 0 3px 0 rgba(255,149,0,0.25);
+  }
+
+  .cell.correct {
+    background: linear-gradient(135deg, #e8fff6, #c8f7e5);
+    border-color: var(--green);
+    box-shadow: 0 3px 0 rgba(6,214,160,0.25);
+  }
+
+  .cell.wrong {
+    background: linear-gradient(135deg, #fff0f3, #ffd6e0);
+    border-color: var(--red);
+    box-shadow: 0 3px 0 rgba(239,35,60,0.2);
+  }
+
+  .cell:not(.fixed):hover { transform: translateY(-2px); border-color: var(--orange); }
+
+  .cell input {
+    width: 100%; height: 100%;
+    background: transparent; border: none; outline: none;
+    text-align: center;
+    font-family: 'Fredoka One', cursive; font-size: 26px;
+    color: var(--text);
+    -moz-appearance: textfield;
+    cursor: text;
+  }
+  .cell input::-webkit-outer-spin-button,
+  .cell input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .cell input::placeholder { color: rgba(58,45,37,0.15); font-size: 20px; }
+
+  /* Sum indicators */
+  .sum-indicator {
+    width: 46px; height: var(--cell-size);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive; font-size: 16px;
+    color: #ccc0b5; border-radius: 10px;
+    transition: all 0.25s;
+  }
+  .sum-indicator.ok {
+    color: white; background: var(--green);
+    box-shadow: 0 3px 0 #04ad82;
+    animation: pop 0.3s ease;
+  }
+  .sum-indicator.bad { color: var(--red); }
+
+  .col-sums { display: flex; gap: var(--gap); margin-top: 2px; }
+
+  .col-sum {
+    width: var(--cell-size); height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive; font-size: 16px;
+    color: #ccc0b5; border-radius: 10px; transition: all 0.25s;
+  }
+  .col-sum.ok {
+    color: white; background: var(--green);
+    box-shadow: 0 2px 0 #04ad82;
+    animation: pop 0.3s ease;
+  }
+  .col-sum.bad { color: var(--red); }
+
+  /* Diagonal info */
+  .diag-info {
+    display: flex; gap: 1.2rem; font-size: 14px; font-weight: 700;
+    color: var(--muted); margin-top: 4px;
+  }
+  .diag-info span { transition: color 0.2s; padding: 3px 10px; border-radius: 8px; }
+  .diag-info span.ok {
+    color: white; background: var(--green);
+    box-shadow: 0 2px 0 #04ad82;
+    animation: pop 0.3s ease;
+  }
+  .diag-info span.bad { color: var(--red); }
+
+  /* Message */
+  .message {
+    min-height: 44px; text-align: center;
+    font-size: 16px; font-weight: 800; color: var(--muted);
+    padding: 10px 24px; border-radius: 14px; transition: all 0.3s;
+    width: 100%;
+  }
+  .message.success {
+    background: linear-gradient(135deg, #e8fff6, #d0fae8);
+    border: 2px solid rgba(6,214,160,0.4); color: #05a87c;
+    font-size: 18px;
+  }
+  .message.error {
+    background: linear-gradient(135deg, #fff0f3, #ffdde3);
+    border: 2px solid rgba(239,35,60,0.25); color: var(--red);
+  }
+  .message.info {
+    background: linear-gradient(135deg, #fff8e8, #fff0cc);
+    border: 2px solid rgba(255,154,60,0.3); color: #c07020;
+  }
+
+  /* Info panel */
+  .info-panel {
+    width: 100%; background: var(--surface);
+    border: 2.5px solid var(--border); border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.8;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.05);
+  }
+  .info-panel .highlight { color: var(--purple); font-weight: 800; }
+  .info-panel .tip { color: var(--orange); font-weight: 800; }
+
+  /* Animations */
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0deg); }
+    25% { transform: rotate(-6deg); }
+    75% { transform: rotate(6deg); }
+  }
+  @keyframes confetti-fall {
+    0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(80px) rotate(720deg); opacity: 0; }
+  }
+
+  .cell.win-anim { animation: pop 0.4s ease; }
+  .cell.hint-anim { animation: wiggle 0.4s ease; }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed; pointer-events: none; z-index: 999;
+    width: 10px; height: 10px; border-radius: 2px;
+    animation: confetti-fall 1s ease forwards;
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    :root { --cell-size: 60px; --gap: 5px; }
+    .cell, .cell input { font-size: 20px; }
+    h1 { font-size: 2.4rem; }
+    .sum-indicator, .col-sum { font-size: 13px; }
+    .sum-indicator { width: 36px; }
+  }
+  @media (max-width: 380px) {
+    :root { --cell-size: 50px; --gap: 4px; }
+    .cell, .cell input { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating stars -->
+<div class="stars-bg" id="stars-bg"></div>
+
+<div class="container">
+
+  <header>
+    <div class="emoji-row">⭐ 🔢 ✨</div>
+    <h1>Carré Magique</h1>
+    <p class="subtitle">Remplis les cases pour que chaque ligne, colonne et diagonale fasse la même somme !</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group">
+      <div class="control-label">Taille</div>
+      <select id="size-select">
+        <option value="3">3 × 3</option>
+        <option value="4">4 × 4</option>
+        <option value="5">5 × 5</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <div class="control-label">Difficulté</div>
+      <select id="diff-select">
+        <option value="easy">😊 Facile</option>
+        <option value="medium">🤔 Moyen</option>
+        <option value="hard">🔥 Difficile</option>
+      </select>
+    </div>
+    <button class="btn btn-new" onclick="newGame()" style="align-self:flex-end">🔄 Nouvelle partie</button>
+    <button class="btn btn-hint" onclick="giveHint()" style="align-self:flex-end">💡 Indice</button>
+    <button class="btn btn-check" onclick="checkAll()" style="align-self:flex-end">✅ Vérifier !</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat stat-target">
+      <div class="stat-label">🎯 Somme cible</div>
+      <div class="stat-value" id="target-display">—</div>
+    </div>
+    <div class="stat stat-timer">
+      <div class="stat-label">⏱️ Chrono</div>
+      <div class="stat-value" id="timer-display">00:00</div>
+    </div>
+    <div class="stat stat-score">
+      <div class="stat-label">⭐ Score</div>
+      <div class="stat-value" id="score-display">0 / 0</div>
+      <div class="score-bar-wrap"><div class="score-bar" id="score-bar"></div></div>
+    </div>
+  </div>
+
+  <div class="game-wrapper">
+    <div class="magic-sum-hint" id="magic-hint"></div>
+    <div class="game-area" id="game-area"></div>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div class="info-panel">
+    🎮 <strong>Comment jouer :</strong> Remplis les cases vides avec des nombres de <span class="highlight" id="range-display">1 à 9</span>.
+    Chaque nombre ne peut être utilisé <span class="highlight">qu'une seule fois</span>.<br>
+    💡 <span class="tip">1 point</span> par bonne somme (ligne ✓, colonne ✓, diagonale ✓).<br>
+    🔵 L'indice révèle une case mais <span class="tip">ne rapporte pas de points</span>.
+  </div>
+
+</div>
+
+<script>
+let N = 3, solution = [], fixed = [], userGrid = [];
+let timerInterval = null, seconds = 0;
+let gameWon = false;
+let maxScore = 0;
+let currentScore = 0;
+let hintUsed = false;
+
+// Generate floating stars
+function createStars() {
+  const bg = document.getElementById('stars-bg');
+  const emojis = ['⭐','✨','🌟','💫','🔢','➕','🔵','🟡','🟣'];
+  for (let i = 0; i < 18; i++) {
+    const el = document.createElement('div');
+    el.className = 'star';
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.fontSize = (14 + Math.random() * 18) + 'px';
+    const dur = 12 + Math.random() * 20;
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = -(Math.random() * dur) + 's';
+    bg.appendChild(el);
+  }
+}
+createStars();
+
+function rotate90(m, n) {
+  let r = Array.from({length: n}, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++)
+      r[j][n - 1 - i] = m[i][j];
+  return r;
+}
+
+// Generate a magic square with offset adapted to difficulty
+function generateMagicSquare(n, diff) {
+  let base;
+  if (n === 3) base = [[2,7,6],[9,5,1],[4,3,8]];
+  else if (n === 4) base = [[16,2,3,13],[5,11,10,8],[9,7,6,12],[4,14,15,1]];
+  else base = [[17,24,1,8,15],[23,5,7,14,16],[4,6,13,20,22],[10,12,19,21,3],[11,18,25,2,9]];
+
+  // Apply random rotations/reflections for variety
+  let rots = Math.floor(Math.random() * 4);
+  for (let r = 0; r < rots; r++) base = rotate90(base, n);
+  if (Math.random() > 0.5) base = base.map(row => [...row].reverse());
+  if (Math.random() > 0.5) base = [...base].reverse();
+
+  // Offset range based on difficulty — keeps numbers simple for young children
+  // Easy: petits nombres proches de la base (somme simple à calculer)
+  // Medium: nombres un peu plus grands
+  // Hard: grands nombres, calculs plus difficiles
+  let minOff, maxOff;
+  if (diff === 'easy')        { minOff = 0;  maxOff = 2;  }
+  else if (diff === 'medium') { minOff = 3;  maxOff = 8;  }
+  else                        { minOff = 9;  maxOff = 20; }
+
+  const offset = minOff + Math.floor(Math.random() * (maxOff - minOff + 1));
+  // Make sure no value goes below 1
+  const minVal = Math.min(...base.flat());
+  const safeOffset = Math.max(offset, 1 - minVal);
+
+  const shifted = base.map(row => row.map(v => v + safeOffset));
+  return shifted;
+}
+
+function magicSum(square) {
+  // Calculate the actual magic sum from the first row
+  return square[0].reduce((a, b) => a + b, 0);
+}
+
+function computeMaxScore(n) {
+  // n rows + n cols + 2 diagonals
+  return n + n + 2;
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  seconds = 0;
+  document.getElementById('timer-display').textContent = '00:00';
+  timerInterval = setInterval(() => {
+    seconds++;
+    let m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    let s = String(seconds % 60).padStart(2, '0');
+    document.getElementById('timer-display').textContent = m + ':' + s;
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerInterval); }
+
+function updateScoreDisplay() {
+  document.getElementById('score-display').textContent = currentScore + ' / ' + maxScore;
+  const pct = maxScore > 0 ? (currentScore / maxScore) * 100 : 0;
+  document.getElementById('score-bar').style.width = pct + '%';
+}
+
+function newGame() {
+  gameWon = false;
+  hintUsed = false;
+  currentScore = 0;
+  N = parseInt(document.getElementById('size-select').value);
+  let diff = document.getElementById('diff-select').value;
+  solution = generateMagicSquare(N, diff);
+  userGrid = solution.map(row => [...row]);
+  maxScore = computeMaxScore(N);
+
+  let total = N * N;
+  // Facile   → beaucoup de cases révélées (peu à trouver)
+  // Moyen    → environ la moitié cachée
+  // Difficile → presque tout caché
+  let reveal = diff === 'easy' ? Math.ceil(total * 0.65) : diff === 'medium' ? Math.ceil(total * 0.40) : Math.ceil(total * 0.20);
+  let positions = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) positions.push([i, j]);
+  positions.sort(() => Math.random() - 0.5);
+
+  fixed = Array.from({length: N}, () => Array(N).fill(false));
+  for (let k = 0; k < reveal; k++) fixed[positions[k][0]][positions[k][1]] = true;
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++)
+    if (!fixed[i][j]) userGrid[i][j] = '';
+
+  const ms = magicSum(solution);
+  document.getElementById('target-display').textContent = ms;
+  document.getElementById('magic-hint').textContent = '🎯 Chaque ligne, colonne et diagonale doit faire ' + ms;
+  document.getElementById('range-display').textContent = 'variés';
+  document.getElementById('message').textContent = '';
+  document.getElementById('message').className = 'message';
+
+  updateScoreDisplay();
+  startTimer();
+  renderGrid();
+}
+
+function renderGrid() {
+  let area = document.getElementById('game-area');
+  area.innerHTML = '';
+
+  for (let i = 0; i < N; i++) {
+    let row = document.createElement('div');
+    row.className = 'grid-row';
+
+    for (let j = 0; j < N; j++) {
+      let cell = document.createElement('div');
+      cell.className = 'cell' + (fixed[i][j] ? ' fixed' : '');
+      cell.id = `cell-${i}-${j}`;
+
+      if (fixed[i][j]) {
+        cell.textContent = solution[i][j];
+      } else {
+        let inp = document.createElement('input');
+        inp.type = 'number';
+        inp.placeholder = '?';
+        if (userGrid[i][j] !== '') inp.value = userGrid[i][j];
+        inp.dataset.row = i; inp.dataset.col = j;
+        inp.addEventListener('input', function() {
+          let v = parseInt(this.value);
+          if (isNaN(v)) { userGrid[i][j] = ''; this.value = ''; }
+          else { userGrid[i][j] = v; }
+          cell.classList.remove('correct', 'wrong');
+          document.getElementById('message').textContent = '';
+          document.getElementById('message').className = 'message';
+        });
+        inp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') checkAll();
+        });
+        cell.appendChild(inp);
+      }
+      row.appendChild(cell);
+    }
+
+    let si = document.createElement('div');
+    si.className = 'sum-indicator'; si.id = `row-sum-${i}`;
+    row.appendChild(si);
+    area.appendChild(row);
+  }
+
+  // Col sums row
+  let colRow = document.createElement('div');
+  colRow.className = 'col-sums';
+  for (let j = 0; j < N; j++) {
+    let cs = document.createElement('div');
+    cs.className = 'col-sum'; cs.id = `col-sum-${j}`;
+    colRow.appendChild(cs);
+  }
+  // Spacer for the row-sum column
+  let spacer = document.createElement('div');
+  spacer.style.width = '46px';
+  colRow.appendChild(spacer);
+  area.appendChild(colRow);
+
+  let diagRow = document.createElement('div');
+  diagRow.className = 'diag-info';
+  diagRow.innerHTML = '<span id="diag1">↘ —</span><span id="diag2">↗ —</span>';
+  area.appendChild(diagRow);
+
+  resetIndicators();
+}
+
+function resetIndicators() {
+  for (let i = 0; i < N; i++) {
+    let rb = document.getElementById(`row-sum-${i}`);
+    if (rb) { rb.textContent = ''; rb.className = 'sum-indicator'; }
+    let cb = document.getElementById(`col-sum-${i}`);
+    if (cb) { cb.textContent = ''; cb.className = 'col-sum'; }
+  }
+  let db1 = document.getElementById('diag1');
+  let db2 = document.getElementById('diag2');
+  if (db1) { db1.textContent = '↘ —'; db1.className = ''; }
+  if (db2) { db2.textContent = '↗ —'; db2.className = ''; }
+}
+
+function getVal(i, j) {
+  return userGrid[i][j] !== '' && userGrid[i][j] !== undefined ? parseInt(userGrid[i][j]) : null;
+}
+
+function updateLiveIndicators() {
+  const ms = magicSum(solution);
+  for (let i = 0; i < N; i++) {
+    let rs = 0, rComplete = true;
+    for (let j = 0; j < N; j++) {
+      const v = getVal(i, j);
+      if (v === null) { rComplete = false; } else { rs += v; }
+    }
+    let rb = document.getElementById(`row-sum-${i}`);
+    if (rb) {
+      if (!rComplete && rs === 0) { rb.textContent = ''; rb.className = 'sum-indicator'; }
+      else { rb.textContent = rs; rb.className = 'sum-indicator ' + (rComplete && rs === ms ? 'ok' : (rs > 0 ? 'bad' : '')); }
+    }
+
+    let cs = 0, cComplete = true;
+    for (let ii = 0; ii < N; ii++) {
+      const v = getVal(ii, i);
+      if (v === null) { cComplete = false; } else { cs += v; }
+    }
+    let cb = document.getElementById(`col-sum-${i}`);
+    if (cb) {
+      if (!cComplete && cs === 0) { cb.textContent = ''; cb.className = 'col-sum'; }
+      else { cb.textContent = cs; cb.className = 'col-sum ' + (cComplete && cs === ms ? 'ok' : (cs > 0 ? 'bad' : '')); }
+    }
+  }
+
+  let d1 = 0, d2 = 0, d1c = true, d2c = true;
+  for (let i = 0; i < N; i++) {
+    const v1 = getVal(i, i); const v2 = getVal(i, N - 1 - i);
+    if (v1 === null) d1c = false; else d1 += v1;
+    if (v2 === null) d2c = false; else d2 += v2;
+  }
+  let db1 = document.getElementById('diag1');
+  let db2 = document.getElementById('diag2');
+  if (db1) { db1.textContent = '↘ ' + (d1 > 0 ? d1 : '—'); db1.className = d1c && d1 === ms ? 'ok' : (d1 > 0 ? 'bad' : ''); }
+  if (db2) { db2.textContent = '↗ ' + (d2 > 0 ? d2 : '—'); db2.className = d2c && d2 === ms ? 'ok' : (d2 > 0 ? 'bad' : ''); }
+}
+
+function checkAll() {
+  if (gameWon) return;
+  const ms = magicSum(solution);
+  let allFilled = true;
+
+  // Check each cell correctness
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    if (!fixed[i][j]) {
+      let cell = document.getElementById(`cell-${i}-${j}`);
+      cell.classList.remove('correct', 'wrong');
+      if (userGrid[i][j] === '' || userGrid[i][j] === undefined) {
+        allFilled = false;
+      } else {
+        let isRight = parseInt(userGrid[i][j]) === solution[i][j];
+        cell.classList.add(isRight ? 'correct' : 'wrong');
+      }
+    }
+  }
+
+  // Count correct sums
+  let pts = 0;
+
+  // Rows
+  for (let i = 0; i < N; i++) {
+    let s = 0, complete = true;
+    for (let j = 0; j < N; j++) { const v = getVal(i, j); if (v === null) complete = false; else s += v; }
+    if (complete && s === ms) pts++;
+  }
+  // Columns
+  for (let j = 0; j < N; j++) {
+    let s = 0, complete = true;
+    for (let i = 0; i < N; i++) { const v = getVal(i, j); if (v === null) complete = false; else s += v; }
+    if (complete && s === ms) pts++;
+  }
+  // Diagonals
+  let d1 = 0, d1c = true, d2 = 0, d2c = true;
+  for (let i = 0; i < N; i++) {
+    const v1 = getVal(i, i); const v2 = getVal(i, N-1-i);
+    if (v1 === null) d1c = false; else d1 += v1;
+    if (v2 === null) d2c = false; else d2 += v2;
+  }
+  if (d1c && d1 === ms) pts++;
+  if (d2c && d2 === ms) pts++;
+
+  currentScore = pts;
+  updateScoreDisplay();
+  updateLiveIndicators();
+
+  let msgEl = document.getElementById('message');
+  if (!allFilled) {
+    msgEl.textContent = '📝 Remplis toutes les cases d\'abord !';
+    msgEl.className = 'message info';
+  } else if (pts === maxScore) {
+    stopTimer();
+    gameWon = true;
+    msgEl.textContent = '🎉 Bravo ! Carré magique résolu en ' + document.getElementById('timer-display').textContent + ' ! Score : ' + pts + '/' + maxScore;
+    msgEl.className = 'message success';
+    launchConfetti();
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      let c = document.getElementById(`cell-${i}-${j}`);
+      if (c) { const delay = (i * N + j) * 60; setTimeout(() => { c.classList.add('win-anim'); setTimeout(() => c.classList.remove('win-anim'), 400); }, delay); }
+    }
+  } else {
+    const ratio = pts + '/' + maxScore;
+    if (pts === 0) msgEl.textContent = '😅 Pas encore… Regarde les cases en rouge !';
+    else msgEl.textContent = '🔍 ' + pts + ' somme' + (pts > 1 ? 's' : '') + ' correcte' + (pts > 1 ? 's' : '') + ' sur ' + maxScore + '. Continue !';
+    msgEl.className = 'message error';
+  }
+}
+
+function giveHint() {
+  if (gameWon) return;
+  let empties = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++)
+    if (!fixed[i][j] && (userGrid[i][j] === '' || userGrid[i][j] === undefined)) empties.push([i, j]);
+  if (empties.length === 0) return;
+  let [ri, rj] = empties[Math.floor(Math.random() * empties.length)];
+  userGrid[ri][rj] = solution[ri][rj];
+  let cell = document.getElementById(`cell-${ri}-${rj}`);
+  let inp = cell ? cell.querySelector('input') : null;
+  if (inp) { inp.value = solution[ri][rj]; inp.style.color = 'var(--blue)'; }
+  cell && cell.classList.add('hint-anim');
+  setTimeout(() => cell && cell.classList.remove('hint-anim'), 400);
+
+  let msgEl = document.getElementById('message');
+  msgEl.textContent = '💡 Indice donné ! (ne rapporte pas de points)';
+  msgEl.className = 'message info';
+}
+
+function launchConfetti() {
+  const colors = ['#ffd93d','#ff6b9d','#4cc9f0','#06d6a0','#9b5de5','#ff9a3c'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.top = (Math.random() * 60) + 'vh';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.transform = `rotate(${Math.random()*360}deg)`;
+    piece.style.animationDelay = Math.random() * 0.8 + 's';
+    piece.style.animationDuration = (0.8 + Math.random() * 0.8) + 's';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 2000);
+  }
+}
+
+document.getElementById('size-select').addEventListener('change', newGame);
+document.getElementById('diff-select').addEventListener('change', newGame);
+newGame();
+</script>
+</body>
+</html>
